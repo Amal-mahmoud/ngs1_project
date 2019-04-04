@@ -1,0 +1,17 @@
+# Assignment number 1
+# Download SRA data
+wget -c ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/SRR/SRR879/SRR8797509/SRR8797509.sra
+
+# Download SRAtoolkit
+wget -c https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.9.6/sratoolkit.2.9.6-ubuntu64.tar.gz
+
+# unzip sratoolkit
+tar xvzf sratoolkit.2.9.6-ubuntu64.tar.gz
+
+# install sratoolkit
+sudo apt install sra-toolkit
+
+# convert sra to fastq
+fastq-dump SRR8797509.sra
+ 
+# New edit
