@@ -12,6 +12,16 @@ tar xvzf sratoolkit.2.9.6-ubuntu64.tar.gz
 sudo apt install sra-toolkit
 
 ## convert sra to fastq
-fastq-dump SRR8797509.sra
+fastq-dump -X 500000 SRR8797509.sra
  
-## New edit
+## no of reads in fastq file  = 23955655
+grep '@' SRR8797509.fastq | wc -l
+
+## split the fastaq file into five samples 
+seqkit  split2 SRR8797509.fastaq -s 100000 
+
+## Shuffle the main fastq file 
+seqkit shuffle SRR8797509.fastq > SRR8797509_shuffeled.fastq
+
+## checking the quality with fastQC
+fastqc -t 1 -f fastq -noextract SRR8797509.part_001.fastq SRR8797509_shuffeled.part_001.fastq
