@@ -23,5 +23,8 @@ seqkit  split2 SRR8797509.fastaq -s 100000
 ## Shuffle the main fastq file 
 seqkit shuffle SRR8797509.fastq > SRR8797509_shuffeled.fastq
 
+## split after shuffle
+seqkit  split2 SRR8797509_shuffeled.fastaq -s 100000
+
 ## checking the quality with fastQC
 fastqc -t 1 -f fastq -noextract SRR8797509.part_001.fastq SRR8797509_shuffeled.part_001.fastq
