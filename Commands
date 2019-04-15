@@ -8,32 +8,49 @@ wget -c https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.9.6/sratoolkit.2.9.6-ubuntu
 ## unzip sratoolkit
 tar xvzf sratoolkit.2.9.6-ubuntu64.tar.gz
 
-## install sratoolkit
-sudo apt install sra-toolkit
+## Add SRAtoolkit to the PATH
+PATH=$PATH: /home/ngs-01/Downloads/sratoolkit.2.9.6-ubuntu64/bin
 
-## convert sra to fastq
-fastq-dump --split-files -X 500000 SRR8797509.sra
- 
-## no of reads in fastq file  = 23955655
+## Convert *.SRA file to 2 separate FASTQ files (forward & reverse reads) using fastq-dump and downloading the first 5000000 reads only:
+fastq-dump --split-files -X 5000000 SRR8797509.sra
+
+## counting number of sequences in the fastq file
 grep '@' SRR8797509.fastq | wc -l
 
-## split the fastaq file into five samples 
-seqkit  split2 SRR8797509_1.fastq -s 100000
- seqkit  split2 SRR8797509_2.fastq -s 100000 
+## Use the seqkit tool to split the main fastq file into separate files
+seqkit split2  SRR8797509_1.fastq -s 1000000
+seqkit split2  SRR8797509_2.fastq -s 1000000
 
-## Shuffle the main fastq file 
-seqkit shuffle SRR8797509_1.fastq > SRR8797509_1shuffeled.fastq
-seqkit shuffle SRR8797509_2.fastq > SRR8797509_2shuffeled.fastq
+## shuffleing the main fastq files (Forward and reverse reads) each containing the 5000000 reads
+seqkit shuffle SRR8797509_1.fastq > SRR8797509_1_shuffled.fastq
+seqkit shuffle SRR8797509_2.fastq > SRR8797509_2_shuffled.fastq
 
-## split the fastaq file into five samples 
-seqkit  split2 SRR8797509_1shuffeled.fastq -s 100000
- seqkit  split2 SRR8797509_2shuffeled.fastq -s 100000
+##split the shuffled files
+seqkit split2  SRR8797509_1_shuffled.fastq -s 1000000
+seqkit split2  SRR8797509_2_shuffled.fastq -s 1000000
 
-## checking the quality with fastQC
-fastqc -t 1 -f fastq -noextract SRR8797509_1.part_001.fastq
-fastqc -t 1 -f fastq -noextract SRR8797509_2.part_001.fastq
-fastqc -t 1 -f fastq -noextract SRR8797509_1shuffeled.part_001.fastq
-fastqc -t 1 -f fastq -noextract SRR8797509_2shuffeled.part_001.fastq
+## Quality Control checking
+## checking the first sample before and after shuffling for quality control using FASTQC
+## install the required tools for performing the quality control assessment
 
-## trimming
-trimmomatic SE -threads 1 -phred33 -trimlog trimLogFile -summary statsSummaryFile -quiet SRR8797509.part_001.fastq SRR8797509.part_001_trimmed.fastq trimmer1
+conda install -c bioconda fastqc
+conda install -c bioconda multiqc
+
+##FastQC assessment for the first sample before shuffling
+mkdir ~/workdir/Assignment/FASTQC_results && cd ~/workdir/Assignment/FASTQC_results
+for f in ~/workdir/Assignment/SRR8797509.fastq.split/SRR8797509_*.part_001.fastq;do
+fastqc -t 1 -f fastq -noextract -o . $f;done
+
+## merging the fastQC reports of the two reads of sample 1 before shuffling
+multiqc -z -o . .
+
+##FastQC assessment for the first sample after shuffling
+mkdir ~/workdir/Assignment/FASTQC_results_shuffled && cd ~/workdir/Assignment/FASTQC_results_shuffled
+for f in ~/workdir/Assignment/shuff_SRR8797509.fastq.split/shuff_SRR8797509_*.part_001.part_001.fastq;do 
+fastqc -t 1 -f fastq -noextract -o . $f;done
+
+##merging the fastQC reports of the two reads of sample 1 after shuffling
+##multiqc -z -o . .
+
+
+
