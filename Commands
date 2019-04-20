@@ -51,6 +51,81 @@ fastqc -t 1 -f fastq -noextract -o . $f;done
 
 ##merging the fastQC reports of the two reads of sample 1 after shuffling
 ##multiqc -z -o . .
+## Mild trimming for the 5 unshuffled samples (5-forward && 5-reverse reads)
+
+mkdir ~/workdir/Assignment/Mild_trimmed && cd ~/workdir/Assignment/Mild_trimmed
+for SAMPLE in 1 2 3 4 5;
+    do
+        R1=$HOME/workdir/Assignment/SRR8797509.fastq.split/SRR8797509_1.part_00${SAMPLE}.fastq
+        R2=$HOME/workdir/Assignment/SRR8797509.fastq.split/SRR8797509_2.part_00${SAMPLE}.fastq
+        newf1=$HOME/workdir/Assignment/Mild_trimmed/SRR8797509_1.part_00${SAMPLE}.pe.trim.fastq
+        newf2=$HOME/workdir/Assignment/Mild_trimmed/SRR8797509_2.part_00${SAMPLE}.pe.trim.fastq
+        newf1U=$HOME/workdir/Assignment/Mild_trimmed/SRR8797509_1.part_00${SAMPLE}.se.trim.fastq
+        newf2U=$HOME/workdir/Assignment/Mild_trimmed/SRR8797509_2.part_00${SAMPLE}.se.trim.fastq
+
+        adap="/home/ngs-01/miniconda3/envs/ngs1/share/trimmomatic-0.38-1/adapters"
+
+        trimmomatic PE -threads 1 -phred33 -trimlog trimLogFile -summary statsSummaryFile  $R1 $R2 $newf1 $newf1U $newf2 $newf2U \
+        ILLUMINACLIP:$adap/TruSeq3-PE.fa:2:30:10:1 SLIDINGWINDOW:4:15 MINLEN:36 
+    done
+##Aggressive trimming for the 5 shuffled samples (5-forward && 5-reverse reads)
+##mkdir ~/workdir/Assignment/Aggressive_trimmed && cd ~/workdir/Assignment/Aggressive_trimmed
+for SAMPLE in 1 2 3 4 5;
+    do
+        R1=$HOME/workdir/Assignment/SRR8797509_shuffled.fastq.split/SRR8797509_1_shuffled.part_00${SAMPLE}.fastq
+        R2=$HOME/workdir/Assignment/SRR8797509_shuffled.fastq.split/SRR8797509_2_shuffled.part_00${SAMPLE}.fastq
+        newf1=$HOME/workdir/Assignment/Aggressive_trimmed/SRR8797509_1_shuffled.part_00${SAMPLE}.pe.trim.fastq
+        newf2=$HOME/workdir/Assignment/Aggressive_trimmed/SRR8797509_2_shuffled.part_00${SAMPLE}.pe.trim.fastq
+        newf1U=$HOME/workdir/Assignment/Aggressive_trimmed/SRR8797509_1_shuffled.part_00${SAMPLE}.se.trim.fastq
+        newf2U=$HOME/workdir/Assignment/Aggressive_trimmed/SRR8797509_2_shuffled.part_00${SAMPLE}.se.trim.fastq
+
+        adap="/home/ngs-01/miniconda3/envs/ngs1/share/trimmomatic-0.38-1/adapters"
+
+        trimmomatic PE -threads 1 -phred33 -trimlog trimLogFile -summary statsSummaryFile  $R1 $R2 $newf1 $newf1U $newf2 $newf2U \
+        ILLUMINACLIP:$adap/TruSeq3-PE.fa:2:30:10:1 SLIDINGWINDOW:3:30 MINLEN:35 
+    done
+##Data Alignment
+
+## install the reqired tool to make alignment with BWA
+##conda install -c bioconda bwa 
+
+## indexing 
+mkdir ~/workdir/Assignment/bwa_align/bwaIndex && cd ~/workdir/Assignment/bwa_align/bwaIndex
+ln -s ~/workdir/sample_data/gencode.v29.pc_transcripts.chr22.simplified.fa .
+bwa index -a bwtsw gencode.v29.pc_transcripts.chr22.simplified.fa
+
+## Aligning the samples before shuffling to human chr 22 using bwa
+
+```cd ~/workdir/Assignment/bwa_align```
+for SAMPLE in 1 2 3 4 5;
+    do
+R1=$HOME/workdir/Assignment/Mild_trimmed/SRR8797509_1.part_00${SAMPLE}.pe.trim.fastq
+        R2=$HOME/workdir/Assignment/Mild_trimmed/SRR8797509_2.part_00${SAMPLE}.pe.trim.fastq
+        /usr/bin/time -v bwa mem bwaIndex/gencode.v29.pc_transcripts.chr22.simplified.fa $R1 $R2 > SRR8797509_part_00${SAMPLE}.sam
+done
+
+## install the reqired tool to make alignment with hisat
+##conda install -c bioconda hisat2 
+## Indexing
+mkdir -p ~/workdir/Assignment/hisat_align/hisatIndex && cd ~/workdir/Assignment/hisat_align/hisatIndex
+ln -s ~/workdir/sample_data/chr22_with_ERCC92.fa .
+
+hisat2_extract_splice_sites.py ~/workdir/sample_data/chr22_with_ERCC92.gtf > splicesites.tsv
+hisat2_extract_exons.py ~/workdir/sample_data/chr22_with_ERCC92.gtf > exons.tsv
+hisat2-build -p 1 --ss splicesites.tsv --exon exons.tsv chr22_with_ERCC92.fa chr22_with_ERCC92
+
+##Aligning the samples after shuffling to human chr 22 using hisat 
+
+cd ~/workdir/Assignment/hisat_align
+for SAMPLE in 1 2 3 4 5;
+    do
+        R1=$HOME/workdir/Assignment/Aggressive_trimmed/SRR8797509_1_shuffled.part_00${SAMPLE}.pe.trim.fastq
+        R2=$HOME/workdir/Assignment/Aggressive_trimmed/SRR8797509_2_shuffled.part_00${SAMPLE}.pe.trim.fastq
+        hisat2 -p 1 -x hisatIndex/chr22_with_ERCC92 --dta --rna-strandness RF -1 $R1 -2 $R2 -S SRR8797509_shuffled.part_00${SAMPLE}.sam
+done
+
+
+
 
 
 
